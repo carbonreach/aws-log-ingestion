@@ -86,6 +86,12 @@ variable "tags" {
   default     = {}
 }
 
+variable "log_groups" {
+  type        = list(string)
+  description = "A list of log groups to configure permissions for triggering the lambda. If not specified, defaults to ALL log groups - `*`" 
+  default = "*"
+}
+
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 data "aws_region" "current" {}
@@ -201,10 +207,11 @@ resource "aws_lambda_function" "ingestion_function" {
 }
 
 resource "aws_lambda_permission" "log_invoke_permission" {
+  for_each      = var.log_groups
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.ingestion_function.function_name
   principal     = "logs.${local.aws_region}.amazonaws.com"
-  source_arn    = "arn:${local.aws_partition}:logs:${local.aws_region}:${local.aws_account_id}:log-group:*"
+  source_arn    = "arn:${local.aws_partition}:logs:${local.aws_region}:${local.aws_account_id}:log-group:${each.key}"
 }
 
 output "function_arn" {
